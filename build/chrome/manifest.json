@@ -1,0 +1,17 @@
+{
+  "name": "BonPatron",
+  "version": "0.2",
+  "author": "Camille Bouvat",
+  "description": "Utilisez BonPatron d'un simple clic-droit !",
+  "permissions": [
+    "contextMenus", "tabs", "activeTab", "storage", "<all_urls>"
+  ],
+  "icons": {
+    "16": "/img/16.png"
+  },
+  "background": {
+    "page": "background.html",
+    "persistent": false
+  },
+  "manifest_version": 2
+}
