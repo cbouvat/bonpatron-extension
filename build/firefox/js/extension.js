@@ -6,8 +6,6 @@ class BonPatronExtension {
     }
 
     background() {
-        console.log('Background init');
-
         browser.contextMenus.create({
             'id': 'checkTab',
             'type': 'normal',
@@ -20,6 +18,15 @@ class BonPatronExtension {
                 BonPatron.openCheckTab(info.selectionText);
             }
         });
+    }
+
+    popup() {
+        var form = document.getElementById('bonpatron-form');
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            var text = document.getElementById('bonpatron-text').value;
+            BonPatron.openCheckTab(text);
+        }, false); 
     }
 
     openCheckTab(text) {
