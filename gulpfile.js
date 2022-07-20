@@ -1,87 +1,74 @@
-var gulp = require('gulp');
-var sass = require('gulp-sass');
-var babel = require('gulp-babel');
+const { src, dest, series, parallel, watch } = require('gulp')
+const del = require('del')
+const terser = require('gulp-terser')
+const stripDebug = require('gulp-strip-debug')
+const zip = require('gulp-zip')
+const sass = require('gulp-sass')(require('sass'));
+const csso = require('gulp-csso')
+const rename = require('gulp-rename')
 
-// source and distribution folder
-var source = 'src/';
-var dest = 'build/';
+function css() {
+  return src('src/css/*.scss')
+    .pipe(sass())
+    .pipe(rename({ extname: '.min.css' }))
+    .pipe(dest('dist/css/'))
+}
 
-// Tasks
-var common = function() {
-    // Css
-    gulp.src(source + 'sass/*.scss')
-    .pipe(sass({ includePaths: ['./node_modules/bootstrap-sass/assets/stylesheets/'] }))
-    .pipe(gulp.dest(dest + 'css/'));
+function cssMin() {
+  return src('dist/css/*.css')
+    .pipe(csso())
+    .pipe(dest('dist/css/'))
+}
 
-    // Js
-    gulp.src(source + 'js/*.js')
-    .pipe(babel())
-    .pipe(gulp.dest(dest + 'js/'));
+function js() {
+  return src('src/*.js')
+    .pipe(rename({ extname: '.min.js' }))
+    .pipe(dest('dist/'))
+}
 
-    // Img
-    gulp.src(source + 'img/**')
-    .pipe(gulp.dest(dest + 'img/'));
-};
+function jsMin() {
+  return src('dist/*.js')
+    .pipe(stripDebug())
+    .pipe(terser())
+    .pipe(dest('dist/'))
+}
 
-// For firefox
-gulp.task('firefox', function() {
-    dest = 'build/firefox/';
-    common();
+function cleanDist() {
+  return del('dist/**')
+}
 
-    gulp.src(source + 'browser/firefox/*.html')
-    .pipe(gulp.dest(dest));
+function cleanBuild() {
+  return del('build/**')
+}
 
-    gulp.src(source + 'browser/firefox/*.js')
-    .pipe(gulp.dest(dest + 'js/'));
+function copy() {
+  return src([
+    'src/*icons/*',
+    'src/manifest.json',
+    'src/*.html'
+  ])
+    .pipe(dest('dist/'))
+}
 
-    gulp.src(source + 'browser/firefox/manifest.json')
-    .pipe(gulp.dest(dest));
-});
+function build() {
+  return src('dist/**')
+    .pipe(zip('build.zip'))
+    .pipe(dest('build/'))
+}
 
-// For chrome
-gulp.task('chrome', function() {
-    dest = 'build/chrome/';
-    common();
+function sources() {
+  return src(['**', '.eslintrc.js', '.editorconfig'], { ignore: ['node_modules/**', 'dist/**', 'build/**'] })
+    .pipe(zip('sources.zip'))
+    .pipe(dest('build/'))
+}
 
-    gulp.src(source + 'browser/chrome/*.html')
-    .pipe(gulp.dest(dest));
+exports.dev = () => {
+  watch('src/**/*', parallel(css, js, copy))
+}
 
-    gulp.src(source + 'browser/chrome/*.js')
-    .pipe(gulp.dest(dest + 'js/'));
-
-    gulp.src(source + 'browser/chrome/manifest.json')
-    .pipe(gulp.dest(dest));
-});
-
-// For edge
-gulp.task('edge', function() {
-    dest = 'build/edge/';
-    common();
-
-    gulp.src(source + 'browser/edge/*.html')
-    .pipe(gulp.dest(dest));
-
-    gulp.src(source + 'browser/edge/*.js')
-    .pipe(gulp.dest(dest + 'js/'));
-
-    gulp.src(source + 'browser/edge/manifest.json')
-    .pipe(gulp.dest(dest));
-});
-
-// For safari
-gulp.task('safari', function() {
-    dest = 'build/safari.safariextension/';
-    common();
-
-    gulp.src(source + 'browser/safari/*.html')
-    .pipe(gulp.dest(dest));
-
-    gulp.src(source + 'browser/safari/*.js')
-    .pipe(gulp.dest(dest + 'js/'));
-
-    gulp.src(source + 'browser/safari/Info.plist')
-    .pipe(gulp.dest(dest));
-});
-
-// Default task / build
-gulp.task('default', [ 'chrome', 'firefox', 'edge', 'safari' ]);
+exports.default = series(
+  parallel(cleanDist, cleanBuild),
+  parallel(css, js, copy),
+  parallel(cssMin, jsMin),
+  parallel(build, sources)
+)
